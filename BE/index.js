@@ -11,7 +11,7 @@ const port = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
-// ✅ Middleware autentikasi JWT
+//Middleware jwt
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -29,7 +29,7 @@ const authenticateToken = (req, res, next) => {
 const taskLogsRoutes = require('./routes/taskLogsRoutes');
 app.use('/api/task-logs', authenticateToken, taskLogsRoutes);
 
-// Konfigurasi koneksi database
+//koneksi database
 const pool = new Pool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -38,17 +38,17 @@ const pool = new Pool({
   database: process.env.DB_NAME,
 });
 
-//Cek koneksi database
+//cej db
 const checkDatabaseConnection = async () => {
   try {
     await pool.connect();
-    console.log('✅ Koneksi ke database berhasil!');
+    console.log('Koneksi ke database berhasil!');
   } catch (err) {
-    console.error('❌ KONEKSI DATABASE GAGAL:', err.message);
+    console.error('KONEKSI DATABASE GAGAL:', err.message);
   }
 };
 
-// =================== RUTE LOGIN ===================
+//rute lgin
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -75,9 +75,8 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// =================== RUTE TUGAS ===================
 
-// 🔹 GET semua tugas
+//GET semua tugas
 app.get('/api/tasks', authenticateToken, async (req, res) => {
   const { status } = req.query;
   let query = 'SELECT * FROM tasks WHERE user_id = $1';
@@ -99,7 +98,22 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
   }
 });
 
-// 🔹 POST buat tugas baru
+//post log 
+app.post('/api/task-logs', authenticateToken, async (req, res) => {
+  const { task_id, action } = req.body;
+  try {
+    await pool.query(
+      'INSERT INTO task_logs (task_id, action) VALUES ($1, $2)',
+      [task_id, action]
+    );
+    res.status(201).json({ message: 'Log berhasil dibuat' });
+  } catch (err) {
+    console.error('Error saat membuat log:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+//buat tugas baru
 app.post('/api/tasks', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -116,7 +130,7 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
     const newTaskResult = await client.query(newTaskQuery, taskValues);
     const newTask = newTaskResult.rows[0];
 
-    // ✅ Log pembuatan tugas
+    //Log pembuatan tugas
     const logAction = `Tugas "${title}" telah dibuat oleh ${req.user.username}.`;
     await client.query('INSERT INTO task_logs (task_id, action) VALUES ($1, $2)', [newTask.id, logAction]);
 
@@ -131,7 +145,7 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
   }
 });
 
-// 🔹 PUT update tugas
+// update tugas
 app.put('/api/tasks/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { title, description, assignee_name, status, start_date, due_date } = req.body;
@@ -143,15 +157,32 @@ app.put('/api/tasks/:id', authenticateToken, async (req, res) => {
     if (oldTaskResult.rows.length === 0)
       return res.status(404).json({ message: 'Tugas tidak ditemukan atau Anda tidak punya akses.' });
 
-    const oldTask = oldTaskResult.rows[0];
+  const oldTask = oldTaskResult.rows[0];
+  const normalizeDate = (dateString) => {
+  if (!dateString) return null;
+  return dateString.split('T')[0] || dateString;
+};
+
+const fixedStartDate = normalizeDate(start_date);
+const fixedDueDate = normalizeDate(due_date);
+
     const updateQuery = `
       UPDATE tasks
       SET title=$1, description=$2, assignee_name=$3, status=$4, start_date=$5, due_date=$6
       WHERE id=$7 RETURNING *
     `;
-    const updatedTaskResult = await client.query(updateQuery, [title, description, assignee_name, status, start_date, due_date, id]);
 
-    // ✅ Log perubahan status
+    const updatedTaskResult = await client.query(updateQuery, [
+      title,
+      description,
+      assignee_name,
+      status,
+      fixedStartDate,
+      fixedDueDate,
+      id,
+    ]);
+
+    //Log perubahan status
     if (oldTask.status !== status) {
       const logAction = `Status tugas "${oldTask.title}" diubah dari "${oldTask.status}" menjadi "${status}".`;
       await client.query('INSERT INTO task_logs (task_id, action) VALUES ($1, $2)', [id, logAction]);
@@ -168,7 +199,7 @@ app.put('/api/tasks/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// 🔹 DELETE hapus tugas
+//hapus tugas
 app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const client = await pool.connect();
@@ -176,18 +207,24 @@ app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const result = await client.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING title', [id, req.user.id]);
-    if (result.rowCount === 0)
+    const result = await client.query('SELECT title FROM tasks WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Tugas tidak ditemukan atau Anda tidak punya akses.' });
+    }
 
-    // ✅ Log penghapusan tugas
     const deletedTitle = result.rows[0].title;
+
+    //Log penghapusan tugas
     const logAction = `Tugas "${deletedTitle}" telah dihapus oleh ${req.user.username}.`;
     await client.query('INSERT INTO task_logs (task_id, action) VALUES ($1, $2)', [id, logAction]);
 
+     await client.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2', [id, req.user.id]);
     await client.query('COMMIT');
     res.status(200).json({ message: 'Tugas berhasil dihapus' });
-  } catch (err) {
+} catch (err) {
     await client.query('ROLLBACK');
     console.error('Error saat menghapus tugas:', err.message);
     res.status(500).send('Server Error');
@@ -196,7 +233,7 @@ app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// 🔹 GET ringkasan dashboard
+//GET ringkasan dashboard
 app.get('/api/dashboard/summary', authenticateToken, async (req, res) => {
   try {
     const query = `
@@ -216,7 +253,7 @@ app.get('/api/dashboard/summary', authenticateToken, async (req, res) => {
   }
 });
 
-// =================== 🔥 RUTE BARU: LOG AKTIVITAS TUGAS ===================
+//semua log tugas
 app.get('/api/task-logs/:task_id', authenticateToken, async (req, res) => {
   const { task_id } = req.params;
   try {
@@ -226,7 +263,7 @@ app.get('/api/task-logs/:task_id', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Anda tidak memiliki akses ke log tugas ini.' });
     }
 
-    // Ambil semua log dari tabel task_logs
+    //ambil log tugas
     const logsResult = await pool.query(
       'SELECT id, action, created_at FROM task_logs WHERE task_id = $1 ORDER BY created_at DESC',
       [task_id]
@@ -239,7 +276,7 @@ app.get('/api/task-logs/:task_id', authenticateToken, async (req, res) => {
   }
 });
 
-// =================== START SERVER ===================
+//run server
 const startServer = async () => {
   await checkDatabaseConnection();
   app.listen(port, () => {

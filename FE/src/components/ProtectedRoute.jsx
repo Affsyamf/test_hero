@@ -3,9 +3,17 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (!user) {
+  if (loading) {
+  return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-600">Memuat...</p>
+      </div>
+    );
+  }
+
+   if (!user) {
     return <Navigate to="/login" replace />;
   }
 

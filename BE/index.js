@@ -1,6 +1,7 @@
 require('dotenv').config({ path: './.env' });
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt');
 const { Pool } = require('pg');
 const app = express();
@@ -24,7 +25,7 @@ const authenticateToken = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) return res.sendStatus(401). json({ message: 'Token tidak ditemukan' });
 
-    const secretKey = process.env.JWT_SECRET || 'default'
+    const secretKey = process.env.JWT_SECRET || 'default_secret_key'
 
     jwt.verify(token, secretKey, (err, user) => {
         if (err) return res.sendStatus(403).json({ message: 'Token tidak valid' });
@@ -55,7 +56,11 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ message: 'Username atau password salah' });
         }
         const user = userResult.rows[0];
-        const secret = process.env  .JWT_SECRET || 'default';
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+        if (!validPassword) {
+            return res.status(400).json({ message: 'Username atau password salah' });
+        }
+        const secret = process.env.JWT_SECRET || 'default_secret_key';
         const accessToken = jwt.sign({ id: user.id, username: user.username }, secret, { expiresIn: '1h' });
         res.json({ accessToken });
     } catch (err) {
@@ -66,14 +71,25 @@ app.post('/api/login', async (req, res) => {
 
 //endpoint data tuags
 app.get('/api/tasks', authenticateToken, async (req, res) => {
+   const { status } = req.query;
+    let query = 'SELECT * FROM tasks WHERE user_id = $1';
+    const queryParams = [req.user.id];
+
+    if (status && status !== 'Semua') {
+        query += ' AND status = $2';
+        queryParams.push(status);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+
     try {
-        const result = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
+        const result = await pool.query(query, queryParams);
         res.json(result.rows);
-    }catch (err) {
+    } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
-})
+});
 
 //enpoint jika ada tigas baru
 
@@ -107,47 +123,68 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
 //update
 app.put('/api/tasks/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
-    const { title, description, assignee_name, start_date, due_date, status } = req.body;
+    const { title, description, assignee_name, status, start_date, due_date } = req.body;
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN');
-
-        // ambil data
-        const oldTaskResult = await client.query('SELECT * FROM tasks WHERE id = $1', [id]);
+        const oldTaskResult = await client.query('SELECT * FROM tasks WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+        if (oldTaskResult.rows.length === 0) {
+            return res.status(404).json({ message: "Tugas tidak ditemukan atau Anda tidak punya akses." });
+        }
         const oldStatus = oldTaskResult.rows[0].status;
 
-        //update data
-        const updateQuery = 'UPDATE tasks SET title=$1, description=$2, assignee_name=$3, status=$4 WHERE id=$5 RETURNING *';
-        const updatedTaskResult = await client.query(updateQuery, [title, description, assignee_name, status, id]);
+        const updateQuery = 'UPDATE tasks SET title=$1, description=$2, assignee_name=$3, status=$4, start_date=$5, due_date=$6 WHERE id=$7 RETURNING *';
+        const updatedTaskResult = await client.query(updateQuery, [title, description, assignee_name, status, start_date, due_date, id]);
 
-        //buat log jika status berubah
         if (oldStatus !== status) {
-            const logAction = `status diubah dari "${oldStatus}" menjadi "${status}".`;
+            const logAction = `Status diubah dari "${oldStatus}" menjadi "${status}".`;
             await client.query('INSERT INTO task_logs (task_id, action) VALUES ($1, $2)', [id, logAction]);
         }
 
         await client.query('COMMIT');
         res.json({ message: 'Tugas berhasil diperbarui', task: updatedTaskResult.rows[0] });
-    }catch (err) {
+    } catch (err) {
         await client.query('ROLLBACK');
         console.error("Error saat memperbarui tugas:", err.message);
         res.status(500).send('Server Error');
-    }finally {
+    } finally {
         client.release();
     }
 });
 
 
 //delete
-
 app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
-        await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
+       const result = await pool.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "Tugas tidak ditemukan atau Anda tidak punya akses." });
+        }
         res.status(200).json({ message: 'Tugas berhasil dihapus' });
     } catch (err) {
         console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+//rute dashboard
+app.get('/api/dashboard/summary', authenticateToken, async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                COUNT(*) AS total_tasks,
+                COUNT(*) FILTER (WHERE status = 'Sedang Dikerjakan') AS in_progress_tasks,
+                COUNT(*) FILTER (WHERE status = 'Selesai') AS completed_tasks,
+                COUNT(*) FILTER (WHERE status = 'Belum Dimulai') AS pending_tasks
+            FROM tasks
+            WHERE user_id = $1;
+        `;
+        const result = await pool.query(query, [req.user.id]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Error saat mengambil ringkasan dashboard:", err.message);
         res.status(500).send('Server Error');
     }
 });

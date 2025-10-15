@@ -38,7 +38,7 @@ const pool = new Pool({
   database: process.env.DB_NAME,
 });
 
-// ✅ Cek koneksi database
+//Cek koneksi database
 const checkDatabaseConnection = async () => {
   try {
     await pool.connect();

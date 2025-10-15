@@ -183,6 +183,12 @@ const DashboardPage = () => {
                       <h3 className="font-bold text-gray-900">{task.title}</h3>
                       <p className="text-sm text-gray-600">{task.description}</p>
                       <p className="mt-2 text-xs text-gray-500">Untuk: <strong>{task.assignee_name}</strong></p>
+
+                      {/* menampilkan jadwal task */}
+                      <div className='mt-2 space-y1 text-xs text-gray-500'>
+                        <p><strong>Dibuat:</strong> {new Date(task.created_at).toLocaleDateString('id-ID')}</p> {task.start_date && <p><strong>Mulai:</strong> {new Date(task.start_date).toLocaleDateString('id-ID')}</p>} {task.due_date && <p><strong>Batas Waktu:</strong> {new Date(task.due_date).toLocaleDateString('id-ID')}</p>}
+                      </div>
+                      
                     </div>
                     <div className="flex flex-col items-start mt-4 space-y-2 md:mt-0 md:items-end">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(task.status)}`}>

@@ -10,27 +10,36 @@ const TaskFormModal = ({ isOpen, onClose, onSave, task, isLoading }) => {
         status: 'Belum Dimulai'
     });
 
-    useEffect(() => {
-        if (task) {
-            setFormData({
-                title: task.title || '',
-                description: task.description || '',
-                assignee_name: task.assignee_name || '',
-                start_date: task.start_date ? new Date(task.start_date).toISOString().split('T')[0] : '',
-                due_date: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '',
-                status: task.status || 'Belum Dimulai'
-            });
-        } else {
-            setFormData({
-                title: '',
-                description: '',
-                assignee_name: '',
-                start_date: '',
-                due_date: '',
-                status: 'Belum Dimulai'
-            });
-        }
-    }, [task, isOpen]);
+ useEffect(() => {
+    if (task) {
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        setFormData({
+            title: task.title || '',
+            description: task.description || '',
+            assignee_name: task.assignee_name || '',
+            start_date: formatDate(task.start_date),
+            due_date: formatDate(task.due_date),
+            status: task.status || 'Belum Dimulai'
+        });
+    } else {
+        setFormData({
+            title: '',
+            description: '',
+            assignee_name: '',
+            start_date: '',
+            due_date: '',
+            status: 'Belum Dimulai'
+        });
+    }
+}, [task, isOpen]);
 
     if (!isOpen) return null;
 

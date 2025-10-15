@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from "react-router-dom";
 
 
-// Komponen Pola Latar Belakang SVG
+//komponen latar
 const GridPattern = () => (
     <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]">
         <svg className="absolute inset-0 h-full w-full opacity-10">
@@ -47,7 +47,7 @@ const navigate = useNavigate();
             <div 
                 className={`relative w-full max-w-md p-8 m-4 space-y-8 bg-gray-900/60 border border-purple-500/20 rounded-2xl shadow-2xl backdrop-blur-lg transition-all duration-700 ease-in-out ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
             >
-                {/* Efek gradien di border */}
+                {/* efek border */}
                 <div className="absolute -top-px left-20 right-11 h-px bg-gradient-to-r from-purple-500/0 via-purple-500/40 to-purple-500/0"></div>
                 <div className="absolute -bottom-px left-11 right-20 h-px bg-gradient-to-r from-blue-500/0 via-blue-500/40 to-blue-500/0"></div>
                 
@@ -59,9 +59,6 @@ const navigate = useNavigate();
                             </svg>
                         </div>
                     </div>
-                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
-                        Project Sentinel
-                    </h2>
                     <p className="mt-2 text-sm text-gray-400">Login untuk mengelola tugas Anda</p>
                 </div>
                 

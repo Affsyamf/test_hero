@@ -2,26 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "BE/index.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "FE/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/BE/index.js"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",
-      "destination": "/FE/index.html"
+      "destination": "/index.html"
     }
   ]
 }
-

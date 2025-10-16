@@ -26,6 +26,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+
 const taskLogsRoutes = require('./routes/taskLogsRoutes');
 app.use('/api/task-logs', authenticateToken, taskLogsRoutes);
 

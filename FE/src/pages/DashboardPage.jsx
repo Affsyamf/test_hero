@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import Header from '../components/Header';
 import TaskFormModal from '../components/TaskFormModal';
+import TaskChart from '../components/TaskChart';
+import Leaderboard from '../components/Leaderboard';
 
 const API_URL = 'http://localhost:5001/api';
 
@@ -15,6 +17,17 @@ const DashboardPage = () => {
   const [filter, setFilter] = useState('Semua');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const tasksPerPage = 5;
+
+  const indexOfLastTask = currentPage * tasksPerPage;
+  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+  const currentTasks = tasks.slice(indexOfFirstTask, indexOfLastTask);
+  const totalPages = Math.ceil(tasks.length / tasksPerPage);
+
+  const handlePageChange = (pageNumber) => {
+  setCurrentPage(pageNumber);
+  };
 
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     setIsLoading(true);
@@ -125,7 +138,7 @@ const DashboardPage = () => {
       <Header />
       <main className="p-6">
 
-        {/* === KARTU RINGKASAN === */}
+        {/*card dashboard atas*/}
         <section className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
           {summary ? (
             <>
@@ -151,7 +164,14 @@ const DashboardPage = () => {
           )}
         </section>
 
-        {/* === DAFTAR TUGAS === */}
+
+        {/* grafik */}
+        <section className="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
+            <TaskChart summary={summary} />
+            <Leaderboard tasks={tasks} />
+        </section>
+
+        {/*daftar tugas*/}
         <section className="p-6 mb-8 bg-white rounded-lg shadow-sm">
           <div className="flex flex-col items-center justify-between gap-4 mb-6 md:flex-row">
             <h2 className="text-xl font-bold text-gray-800">Daftar Tugas</h2>
@@ -176,13 +196,14 @@ const DashboardPage = () => {
 
           <div className="space-y-4">
             {tasks.length > 0 ? (
-              tasks.map((task) => (
+              currentTasks.map((task) => (
                 <div key={task.id} className="p-4 border rounded-lg shadow-sm bg-gray-50">
                   <div className="flex flex-col justify-between md:flex-row">
                     <div>
                       <h3 className="font-bold text-gray-900">{task.title}</h3>
                       <p className="text-sm text-gray-600">{task.description}</p>
                       <p className="mt-2 text-xs text-gray-500">Untuk: <strong>{task.assignee_name}</strong></p>
+
 
                       {/* menampilkan jadwal task */}
                       <div className='mt-2 space-y1 text-xs text-gray-500'>
@@ -208,7 +229,25 @@ const DashboardPage = () => {
           </div>
         </section>
 
-        {/* === LOG AKTIVITAS === */}
+        {totalPages > 1 && (
+        <div className="flex justify-center mt-4 space-x-2">
+            {Array.from({ length: totalPages }, (_, index) => (
+            <button
+                key={index}
+                onClick={() => handlePageChange(index + 1)}
+                className={`px-3 py-1 rounded-md border ${
+                currentPage === index + 1
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
+            >
+                {index + 1}
+            </button>
+            ))}
+        </div>
+        )}
+
+        {/*log riwayat*/}
         <section className="p-6 bg-white rounded-lg shadow-sm">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Aktivitas Terbaru</h2>
           <ul className="space-y-2 max-h-64 overflow-y-auto">

@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const api = axios.create({});
+const baseURL = import.meta.env.VITE_API_URL || '/api';
+
+const api = axios.create({
+  baseURL: baseURL,
+});
 
 // Interceptor untuk mengirim token otomatis
 api.interceptors.request.use((config) => {
@@ -12,3 +16,4 @@ api.interceptors.request.use((config) => {
 });
 
 export default api;
+

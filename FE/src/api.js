@@ -1,10 +1,8 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: 'http://localhost:5001/api',
-});
+const api = axios.create({});
 
-// Interceptor untuk kirim token otomatis
+// Interceptor untuk mengirim token otomatis
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {

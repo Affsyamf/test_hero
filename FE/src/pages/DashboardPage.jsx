@@ -5,7 +5,7 @@ import TaskFormModal from '../components/TaskFormModal';
 import TaskChart from '../components/TaskChart';
 import Leaderboard from '../components/Leaderboard';
 
-const API_URL = 'http://localhost:5001/api';
+const API_URL = '/api';
 
 const DashboardPage = () => {
   const { token, onLogout } = useAuth();

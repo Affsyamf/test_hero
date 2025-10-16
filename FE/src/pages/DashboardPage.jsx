@@ -20,6 +20,16 @@ const DashboardPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const tasksPerPage = 5;
 
+  const [currentLogPage, setCurrentLogPage] = useState(1);
+  const logsPerPage = 5;
+
+  const indexOfLastLog = currentLogPage * logsPerPage;
+  const indexOfFirstLog = indexOfLastLog - logsPerPage;
+  const currentLogs = logs.slice(indexOfFirstLog, indexOfLastLog);
+  const totalLogPages = Math.ceil(logs.length / logsPerPage);
+  const handleLogPageChange = (pageNumber) => setCurrentLogPage(pageNumber);
+
+
   const indexOfLastTask = currentPage * tasksPerPage;
   const indexOfFirstTask = indexOfLastTask - tasksPerPage;
   const currentTasks = tasks.slice(indexOfFirstTask, indexOfLastTask);
@@ -105,14 +115,14 @@ const DashboardPage = () => {
   };
 
   const handleDeleteTask = async (taskId, title) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus tugas ini?')) {
-      const result = await apiFetch(`/tasks/${taskId}`, { method: 'DELETE' });
-      if (result) {
-        await createLog(taskId, `Tugas "${title}" dihapus`);
-        fetchDashboardData();
-      }
-    }
-  };
+        if (window.confirm('Apakah Anda yakin ingin menghapus tugas ini?')) {
+            const result = await apiFetch(`/tasks/${taskId}`, { method: 'DELETE' });
+            if (result) {
+                await createLog(taskId, `Tugas "${title}" dihapus`);
+                fetchDashboardData();
+            }
+        }
+    };
 
   const openModal = (task = null) => {
     setEditingTask(task);
@@ -250,9 +260,9 @@ const DashboardPage = () => {
         {/*log riwayat*/}
         <section className="p-6 bg-white rounded-lg shadow-sm">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Aktivitas Terbaru</h2>
-          <ul className="space-y-2 max-h-64 overflow-y-auto">
+          <ul className="space-y-2">
             {logs.length > 0 ? (
-              logs.map((log) => (
+             currentLogs.map((log) => (
                 <li key={log.id} className="p-3 border rounded-lg bg-gray-50">
                   <p className="text-sm text-gray-800">{log.action}</p>
                   <p className="text-xs text-gray-500">{new Date(log.created_at).toLocaleString()}</p>
@@ -262,6 +272,24 @@ const DashboardPage = () => {
               <p>Belum ada aktivitas.</p>
             )}
           </ul>
+
+            {/* paginasi logs */}
+          {totalLogPages > 1 && (
+                        <div className="flex justify-center mt-6 space-x-2">
+                            {Array.from({ length: totalLogPages }, (_, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => handleLogPageChange(index + 1)}
+                                    className={`px-3 py-1 rounded-md border ${currentLogPage === index + 1
+                                            ? 'bg-blue-600 text-white border-blue-600'
+                                            : 'bg-white text-gray-700 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    {index + 1}
+                                </button>
+                            ))}
+                        </div>
+                    )}
         </section>
       </main>
 

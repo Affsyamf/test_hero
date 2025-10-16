@@ -8,12 +8,11 @@ import {
   Legend,
 } from "recharts";
 
-// Warna disesuaikan agar lebih kontras dan menarik
+// Warna
 const COLORS = ["#6b7280", "#f59e0b", "#10b981"];
 
 const TaskChart = ({ summary }) => {
   if (!summary) {
-    // Tampilan loading yang lebih baik
     return (
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 flex justify-center items-center h-[416px]">
             <p className="text-gray-500">Memuat data grafik...</p>
@@ -21,15 +20,14 @@ const TaskChart = ({ summary }) => {
     );
   }
 
-  // FIX: Konversi nilai dari string ke angka menggunakan parseInt()
-  // Pastikan ada fallback ke 0 jika data tidak ada
+  //Konversi nilai dari string ke angka 
   const data = [
     { name: "Belum Dimulai", value: parseInt(summary.pending_tasks || '0', 10) },
     { name: "Sedang Dikerjakan", value: parseInt(summary.in_progress_tasks || '0', 10) },
     { name: "Selesai", value: parseInt(summary.completed_tasks || '0', 10) },
-  ].filter(item => item.value > 0); // Opsi: Sembunyikan jika nilainya 0
+  ].filter(item => item.value > 0); 
 
-  // Jika tidak ada data sama sekali setelah difilter
+    // Jika tidak ada data tugas
   if (data.length === 0) {
     return (
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 flex flex-col justify-center items-center h-[416px]">

@@ -8,18 +8,38 @@ import {
   Legend,
 } from "recharts";
 
-const COLORS = ["#d1d5db", "#facc15", "#22c55e", "#3b82f6"];
+// Warna disesuaikan agar lebih kontras dan menarik
+const COLORS = ["#6b7280", "#f59e0b", "#10b981"];
 
 const TaskChart = ({ summary }) => {
   if (!summary) {
-    return <p>Loading grafik...</p>;
+    // Tampilan loading yang lebih baik
+    return (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 flex justify-center items-center h-[416px]">
+            <p className="text-gray-500">Memuat data grafik...</p>
+        </div>
+    );
   }
 
+  // FIX: Konversi nilai dari string ke angka menggunakan parseInt()
+  // Pastikan ada fallback ke 0 jika data tidak ada
   const data = [
-    { name: "Belum Dimulai", value: summary.pending_tasks || 0 },
-    { name: "Sedang Dikerjakan", value: summary.in_progress_tasks || 0 },
-    { name: "Selesai", value: summary.completed_tasks || 0 },
-  ];
+    { name: "Belum Dimulai", value: parseInt(summary.pending_tasks || '0', 10) },
+    { name: "Sedang Dikerjakan", value: parseInt(summary.in_progress_tasks || '0', 10) },
+    { name: "Selesai", value: parseInt(summary.completed_tasks || '0', 10) },
+  ].filter(item => item.value > 0); // Opsi: Sembunyikan jika nilainya 0
+
+  // Jika tidak ada data sama sekali setelah difilter
+  if (data.length === 0) {
+    return (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 flex flex-col justify-center items-center h-[416px]">
+            <h2 className="text-lg font-semibold mb-4 text-gray-800">
+                Grafik Status Tugas
+            </h2>
+            <p className="text-gray-500">Belum ada data tugas untuk ditampilkan.</p>
+        </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -36,13 +56,15 @@ const TaskChart = ({ summary }) => {
               outerRadius={120}
               fill="#8884d8"
               dataKey="value"
-              label
+              label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip
+                formatter={(value) => [`${value} tugas`, 'Jumlah']}
+            />
             <Legend />
           </PieChart>
         </ResponsiveContainer>

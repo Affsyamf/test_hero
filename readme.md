@@ -88,7 +88,17 @@ node index.js
 
 Server backend sekarang berjalan di http://localhost:5001.
 
-3. Konfigurasi Frontend (FE)
+3. Tech Stack folder BE
+npm install express pg cors axios jsonwebtoken bcrypt
+npm init -y
+
+3.1 Tech Stack folder FE 
+npm install axios recharts
+npm install tailwindcss @radix-ui/react-icons class-variance-authority clsx
+npx shadcn@latest init
+
+
+4. Konfigurasi Frontend (FE)
 Buka terminal baru, lalu masuk ke direktori frontend dan instal dependensi:
 
 cd FE

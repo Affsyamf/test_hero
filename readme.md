@@ -111,3 +111,9 @@ Jalankan server pengembangan frontend:
 npm run dev
 
 Aplikasi frontend sekarang dapat diakses di http://localhost:5173 (atau port lain yang ditampilkan di terminal).
+
+
+
+LOGIN
+Username = manager
+pw = 1111
